@@ -1,11 +1,11 @@
-public class GameConsole implements Powered {
+public class GameConsole {
     private final String brand;
-    private final String serial;
     private final String model;
+    private final String serial;
     private final Gamepad firstGamepad;
     private final Gamepad secondGamepad;
-    private Game activeGame;
     private boolean isOn = false;
+    private Game activeGame;
     private int waitingCounter = 0;
     public GameConsole(String brand, String serial) {
         this.brand = brand;
@@ -17,11 +17,11 @@ public class GameConsole implements Powered {
     public String getBrand() {
         return brand;
     }
-    public String getSerial() {
-        return serial;
-    }
     public String getModel() {
         return model;
+    }
+    public String getSerial() {
+        return serial;
     }
     public Gamepad getFirstGamepad() {
         return firstGamepad;
@@ -29,54 +29,40 @@ public class GameConsole implements Powered {
     public Gamepad getSecondGamepad() {
         return secondGamepad;
     }
-    public Game getActiveGame() {
-        return activeGame;
+    public boolean isOn() {
+        return isOn;
     }
-    public void setActiveGame(Game activeGame) {
-        this.activeGame = activeGame;
-    }
-    @Override
-    public void powerOn() {
-        isOn = true;
-        System.out.println("Console powered on.");
-    }
-    @Override
-    public void powerOff() {
-        isOn = false;
-        System.out.println("Console powered off.");
+    public void setOn(boolean on) {
+        isOn = on;
     }
     public void loadGame(Game game) {
-        if (isOn) {
-            activeGame = game;
-            System.out.println("Game " + game.getName() + " is loading.");
-        } else {
-            System.out.println("Console is off. Cannot load game.");
-        }
+        this.activeGame = game;
+        System.out.println("Loading game: " + game.getName());
     }
-    public void playGame() {
+    public void playGame() throws NoActivityException {
+        if (!isOn) {
+            System.out.println("Console is off. Please turn it on first.");
+            return;
+        }
         if (activeGame == null) {
-            System.out.println("No game loaded.");
+            System.out.println("No game loaded. Please load a game first.");
             return;
         }
         checkStatus();
-        if (!isOn) return;
-        System.out.println("Playing " + activeGame.getName());
-        for (Gamepad gamepad : new Gamepad[]{firstGamepad, secondGamepad}) {
-            if (gamepad.isOn()) {
-                System.out.println("Gamepad " + gamepad.getConnectedNumber() + " charge: " + gamepad.getChargeLevel() + "%");
-                gamepad.setChargeLevel(gamepad.getChargeLevel() - 10);
-                if (gamepad.getChargeLevel() <= 0) {
-                    gamepad.powerOff();
-                }
-            }
+        System.out.println("Playing game: " + activeGame.getName());
+        if (firstGamepad.isOn()) {
+            firstGamepad.decreaseCharge();
+        }
+        if (secondGamepad.isOn()) {
+            secondGamepad.decreaseCharge();
         }
     }
-    private void checkStatus() {
+    private void checkStatus() throws NoActivityException {
         if (!firstGamepad.isOn() && !secondGamepad.isOn()) {
             System.out.println("Connect a gamepad.");
             waitingCounter++;
             if (waitingCounter > 5) {
-                powerOff();
+                isOn = false;
                 throw new NoActivityException("Console shutting down due to inactivity.");
             }
         } else {
@@ -116,16 +102,21 @@ public class GameConsole implements Powered {
         public boolean isOn() {
             return isOn;
         }
-        @Override
         public void powerOn() {
-            isOn = true;
-            GameConsole.this.powerOn();
-            System.out.println("Gamepad " + connectedNumber + " powered on.");
+            this.isOn = true;
+            GameConsole.this.setOn(true);
         }
-        @Override
         public void powerOff() {
-            isOn = false;
-            System.out.println("Gamepad " + connectedNumber + " powered off.");
+            this.isOn = false;
+        }
+        public void decreaseCharge() {
+            if (chargeLevel > 0) {
+                chargeLevel -= 10.0;
+                if (chargeLevel <= 0) {
+                    powerOff();
+                    System.out.println("Gamepad " + connectedNumber + " turned off due to low battery.");
+                }
+            }
         }
     }
 }
