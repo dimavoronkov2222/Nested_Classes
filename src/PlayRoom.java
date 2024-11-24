@@ -19,6 +19,9 @@ public class PlayRoom {
         virtualGames[2].setRating(5);
         virtualGames[3].setRating(2);
         GameConsole console = new GameConsole("Sony", "PS5-12345");
+        console.getFirstGamepad().powerOn();
+        console.loadGame(physicalGames[0].getData());
+        console.playGame();
         Arrays.sort(physicalGames, Comparator.comparing(disk -> disk.getData().getGanre()));
         Arrays.sort(virtualGames, Comparator.comparingInt(Game.VirtualGame::getRating));
         System.out.println("Physical games sorted by genre:");

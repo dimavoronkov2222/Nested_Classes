@@ -1,11 +1,12 @@
-import java.util.Objects;
-public class GameConsole {
+public class GameConsole implements Powered {
     private final String brand;
-    private final String model;
     private final String serial;
+    private final String model;
     private final Gamepad firstGamepad;
     private final Gamepad secondGamepad;
+    private Game activeGame;
     private boolean isOn = false;
+    private int waitingCounter = 0;
     public GameConsole(String brand, String serial) {
         this.brand = brand;
         this.serial = serial;
@@ -16,11 +17,11 @@ public class GameConsole {
     public String getBrand() {
         return brand;
     }
-    public String getModel() {
-        return model;
-    }
     public String getSerial() {
         return serial;
+    }
+    public String getModel() {
+        return model;
     }
     public Gamepad getFirstGamepad() {
         return firstGamepad;
@@ -28,13 +29,61 @@ public class GameConsole {
     public Gamepad getSecondGamepad() {
         return secondGamepad;
     }
-    public boolean isOn() {
-        return isOn;
+    public Game getActiveGame() {
+        return activeGame;
     }
-    public void setOn(boolean on) {
-        isOn = on;
+    public void setActiveGame(Game activeGame) {
+        this.activeGame = activeGame;
     }
-    public class Gamepad {
+    @Override
+    public void powerOn() {
+        isOn = true;
+        System.out.println("Console powered on.");
+    }
+    @Override
+    public void powerOff() {
+        isOn = false;
+        System.out.println("Console powered off.");
+    }
+    public void loadGame(Game game) {
+        if (isOn) {
+            activeGame = game;
+            System.out.println("Game " + game.getName() + " is loading.");
+        } else {
+            System.out.println("Console is off. Cannot load game.");
+        }
+    }
+    public void playGame() {
+        if (activeGame == null) {
+            System.out.println("No game loaded.");
+            return;
+        }
+        checkStatus();
+        if (!isOn) return;
+        System.out.println("Playing " + activeGame.getName());
+        for (Gamepad gamepad : new Gamepad[]{firstGamepad, secondGamepad}) {
+            if (gamepad.isOn()) {
+                System.out.println("Gamepad " + gamepad.getConnectedNumber() + " charge: " + gamepad.getChargeLevel() + "%");
+                gamepad.setChargeLevel(gamepad.getChargeLevel() - 10);
+                if (gamepad.getChargeLevel() <= 0) {
+                    gamepad.powerOff();
+                }
+            }
+        }
+    }
+    private void checkStatus() {
+        if (!firstGamepad.isOn() && !secondGamepad.isOn()) {
+            System.out.println("Connect a gamepad.");
+            waitingCounter++;
+            if (waitingCounter > 5) {
+                powerOff();
+                throw new NoActivityException("Console shutting down due to inactivity.");
+            }
+        } else {
+            waitingCounter = 0;
+        }
+    }
+    public class Gamepad implements Powered {
         private final String brand;
         private final String consoleSerial;
         private final int connectedNumber;
@@ -67,8 +116,16 @@ public class GameConsole {
         public boolean isOn() {
             return isOn;
         }
-        public void setOn(boolean on) {
-            isOn = on;
+        @Override
+        public void powerOn() {
+            isOn = true;
+            GameConsole.this.powerOn();
+            System.out.println("Gamepad " + connectedNumber + " powered on.");
+        }
+        @Override
+        public void powerOff() {
+            isOn = false;
+            System.out.println("Gamepad " + connectedNumber + " powered off.");
         }
     }
 }
